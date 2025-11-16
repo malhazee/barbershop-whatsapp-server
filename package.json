@@ -1,6 +1,6 @@
 {
   "name": "barbershop-whatsapp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WhatsApp notification server for barbershop appointments",
   "main": "server.js",
   "scripts": {

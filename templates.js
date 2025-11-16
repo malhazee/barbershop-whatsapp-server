@@ -46,6 +46,28 @@ function getReminderMessage2Hours(name, time) {
 نراك قريباً! 😊`;
 }
 
+// رسالة تذكير قبل ساعة
+function getReminderMessage1Hour(name, time) {
+    return `مرحباً *${name}* 👋
+
+⏰ *تذكير: موعدك بعد ساعة*
+
+الوقت: *${time}*
+
+نراك قريباً! 😊`;
+}
+
+// رسالة تذكير قبل 15 دقيقة
+function getReminderMessage15Min(name, time) {
+    return `مرحباً *${name}* 👋
+
+⏳ *تذكير: موعدك بعد 15 دقيقة*
+
+الوقت: *${time}*
+
+نراك حالاً! 🚗`;
+}
+
 // رسالة إلغاء الموعد
 function getCancellationMessage(name, date, time, reason, websiteUrl = 'https://barbershop-appointments-533ce.web.app') {
     return `مرحباً *${name}* 👋
@@ -159,6 +181,8 @@ module.exports = {
     getBookingConfirmation,
     getReminderMessage,
     getReminderMessage2Hours,
+    getReminderMessage1Hour,
+    getReminderMessage15Min,
     getCancellationMessage,
     getThankYouMessage,
     getWelcomeMessage,

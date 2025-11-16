@@ -10,17 +10,16 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
-const { 
-    getBookingConfirmation, 
-    getReminderMessage, 
+const {
+    getBookingConfirmation,
+    getReminderMessage,
     getCancellationMessage,
-    getThankYouMessage 
+    getThankYouMessage,
+    getReminderMessage1Hour,
+    getReminderMessage15Min
 } = require('./templates');
 
-// ========================================
-// Configuration
-// ========================================
-
+ 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -36,6 +35,78 @@ let client;
 let isReady = false;
 let qrCodeData = null;
 
+// =============================
+// Reminder scheduling (in-memory)
+// =============================
+const scheduledReminders = new Map(); // key -> [timeoutIds]
+
+function getAppointmentKey(phone, date, time) {
+    return `${phone}_${date}_${time}`;
+}
+
+function parseAppointmentDateTime(date, time) {
+    // Assume Asia/Amman (UTC+03:00) for simplicity
+    const iso = `${date}T${time}:00+03:00`;
+    return new Date(iso);
+}
+
+function scheduleReminders(phone, name, date, time) {
+    const key = getAppointmentKey(phone, date, time);
+    // Cancel existing if any
+    cancelReminders(key);
+
+    const apptAt = parseAppointmentDateTime(date, time);
+    const now = new Date();
+    const oneHourBefore = new Date(apptAt.getTime() - 60 * 60 * 1000);
+    const fifteenMinBefore = new Date(apptAt.getTime() - 15 * 60 * 1000);
+
+    const timeouts = [];
+
+    // Schedule -60 minutes
+    const delay1 = oneHourBefore.getTime() - now.getTime();
+    if (delay1 > 0) {
+        const t1 = setTimeout(async () => {
+            try {
+                const msg = getReminderMessage1Hour(name, time);
+                await sendWhatsAppMessage(phone, msg);
+                console.log(`[reminder] sent 60min before for ${key}`);
+            } catch (e) {
+                console.error('[reminder] 60min error:', e.message);
+            }
+        }, delay1);
+        timeouts.push(t1);
+    }
+
+    // Schedule -15 minutes
+    const delay2 = fifteenMinBefore.getTime() - now.getTime();
+    if (delay2 > 0) {
+        const t2 = setTimeout(async () => {
+            try {
+                const msg = getReminderMessage15Min(name, time);
+                await sendWhatsAppMessage(phone, msg);
+                console.log(`[reminder] sent 15min before for ${key}`);
+            } catch (e) {
+                console.error('[reminder] 15min error:', e.message);
+            }
+        }, delay2);
+        timeouts.push(t2);
+    }
+
+    if (timeouts.length) {
+        scheduledReminders.set(key, timeouts);
+        console.log(`[reminder] scheduled ${timeouts.length} reminders for ${key}`);
+    } else {
+        console.log(`[reminder] no future reminders to schedule for ${key}`);
+    }
+}
+
+function cancelReminders(keyOrPhone, date, time) {
+    const key = date && time ? getAppointmentKey(keyOrPhone, date, time) : keyOrPhone;
+    const list = scheduledReminders.get(key) || [];
+    for (const t of list) clearTimeout(t);
+    if (list.length) console.log(`[reminder] cancelled ${list.length} reminders for ${key}`);
+    scheduledReminders.delete(key);
+}
 function initializeWhatsApp() {
     console.log('🚀 جاري تهيئة واتساب...');
     
@@ -361,8 +432,10 @@ app.post('/send-booking-confirmation', async (req, res) => {
             });
         }
 
-        const message = getBookingConfirmation(name, date, time, service);
-        await sendWhatsAppMessage(phone, message);
+    const message = getBookingConfirmation(name, date, time, service);
+    await sendWhatsAppMessage(phone, message);
+    // Schedule automatic reminders (-60m, -15m)
+    scheduleReminders(phone, name, date, time);
         
         res.json({ success: true, message: 'تم إرسال رسالة التأكيد' });
     } catch (error) {
@@ -403,8 +476,10 @@ app.post('/send-cancellation', async (req, res) => {
             });
         }
 
-        const message = getCancellationMessage(name, date, time, reason, websiteUrl);
-        await sendWhatsAppMessage(phone, message);
+    const message = getCancellationMessage(name, date, time, reason, websiteUrl);
+    await sendWhatsAppMessage(phone, message);
+    // Cancel any scheduled reminders for this appointment
+    cancelReminders(phone, date, time);
         
         res.json({ success: true, message: 'تم إرسال رسالة الإلغاء' });
     } catch (error) {
