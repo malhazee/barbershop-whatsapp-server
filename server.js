@@ -427,7 +427,7 @@ app.get('/status', (req, res) => {
 // إرسال رسالة تأكيد حجز
 app.post('/send-booking-confirmation', async (req, res) => {
     try {
-        const { phone, name, date, time, service } = req.body;
+        const { phone, name, date, time, service, barberPhone } = req.body;
         
         if (!phone || !name || !date || !time || !service) {
             return res.status(400).json({ 
@@ -447,11 +447,16 @@ app.post('/send-booking-confirmation', async (req, res) => {
         }
 
         // إشعار الحلاق بحجز جديد (لا يوقف العملية إذا فشل)
-        try {
-            const barberMsg = getBarberNewBooking(name, date, time, service);
-            await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
-        } catch (e) {
-            console.error('Barber notify error (booking):', e.message);
+        if (barberPhone && barberPhone.trim()) {
+            try {
+                const barberMsg = getBarberNewBooking(name, date, time, service);
+                await sendWhatsAppMessage(barberPhone, barberMsg);
+                console.log(`✅ تم إرسال إشعار للحلاق: ${barberPhone}`);
+            } catch (e) {
+                console.error('Barber notify error (booking):', e.message);
+            }
+        } else {
+            console.log('⚠️ رقم الحلاق غير محدد - تخطي الإشعار');
         }
 
         // Schedule automatic reminders (-60m, -15m)
@@ -491,7 +496,7 @@ app.post('/send-reminder', async (req, res) => {
 // إرسال رسالة إلغاء
 app.post('/send-cancellation', async (req, res) => {
     try {
-        const { phone, name, date, time, reason, websiteUrl } = req.body;
+        const { phone, name, date, time, reason, websiteUrl, barberPhone } = req.body;
         
         if (!phone || !name || !date || !time || !reason) {
             return res.status(400).json({ 
@@ -511,11 +516,16 @@ app.post('/send-cancellation', async (req, res) => {
         }
 
         // إشعار الحلاق بإلغاء الحجز (لا يوقف العملية إذا فشل)
-        try {
-            const barberMsg = getBarberCancellation(name, date, time, req.body.service || '---');
-            await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
-        } catch (e) {
-            console.error('Barber notify error (cancel):', e.message);
+        if (barberPhone && barberPhone.trim()) {
+            try {
+                const barberMsg = getBarberCancellation(name, date, time, req.body.service || '---');
+                await sendWhatsAppMessage(barberPhone, barberMsg);
+                console.log(`✅ تم إرسال إشعار إلغاء للحلاق: ${barberPhone}`);
+            } catch (e) {
+                console.error('Barber notify error (cancel):', e.message);
+            }
+        } else {
+            console.log('⚠️ رقم الحلاق غير محدد - تخطي إشعار الإلغاء');
         }
 
         // Cancel any scheduled reminders for this appointment
