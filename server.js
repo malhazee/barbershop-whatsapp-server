@@ -21,7 +21,7 @@ const {
     getBarberCancellation
 } = require('./templates');
 // رقم الحلاق الذي يستقبل إشعارات الحجز والإلغاء (صيغة دولية بدون +)
-const BARBER_PHONE = process.env.BARBER_PHONE || '9627XXXXXXXX'; // عدل الرقم هنا أو عبر متغير بيئة
+const BARBER_PHONE = process.env.BARBER_PHONE || '962775879015'; // عدل الرقم هنا أو عبر متغير بيئة
 
  
 const app = express();
@@ -436,19 +436,32 @@ app.post('/send-booking-confirmation', async (req, res) => {
             });
         }
 
-        const message = getBookingConfirmation(name, date, time, service);
-        await sendWhatsAppMessage(phone, message);
-        // إشعار الحلاق بحجز جديد
+        // إرسال رسالة للعميل
+        let clientSent = false;
+        try {
+            const message = getBookingConfirmation(name, date, time, service);
+            await sendWhatsAppMessage(phone, message);
+            clientSent = true;
+        } catch (e) {
+            console.error('Client notify error (booking):', e.message);
+        }
+
+        // إشعار الحلاق بحجز جديد (لا يوقف العملية إذا فشل)
         try {
             const barberMsg = getBarberNewBooking(name, date, time, service);
             await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
         } catch (e) {
             console.error('Barber notify error (booking):', e.message);
         }
+
         // Schedule automatic reminders (-60m, -15m)
         scheduleReminders(phone, name, date, time);
         
-        res.json({ success: true, message: 'تم إرسال رسالة التأكيد' });
+        if (clientSent) {
+            res.json({ success: true, message: 'تم إرسال رسالة التأكيد' });
+        } else {
+            res.status(500).json({ success: false, error: 'فشل إرسال رسالة التأكيد للعميل' });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -487,19 +500,32 @@ app.post('/send-cancellation', async (req, res) => {
             });
         }
 
-        const message = getCancellationMessage(name, date, time, reason, websiteUrl);
-        await sendWhatsAppMessage(phone, message);
-        // إشعار الحلاق بإلغاء الحجز
+        // إرسال رسالة للعميل
+        let clientSent = false;
+        try {
+            const message = getCancellationMessage(name, date, time, reason, websiteUrl);
+            await sendWhatsAppMessage(phone, message);
+            clientSent = true;
+        } catch (e) {
+            console.error('Client notify error (cancel):', e.message);
+        }
+
+        // إشعار الحلاق بإلغاء الحجز (لا يوقف العملية إذا فشل)
         try {
             const barberMsg = getBarberCancellation(name, date, time, req.body.service || '---');
             await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
         } catch (e) {
             console.error('Barber notify error (cancel):', e.message);
         }
+
         // Cancel any scheduled reminders for this appointment
         cancelReminders(phone, date, time);
         
-        res.json({ success: true, message: 'تم إرسال رسالة الإلغاء' });
+        if (clientSent) {
+            res.json({ success: true, message: 'تم إرسال رسالة الإلغاء' });
+        } else {
+            res.status(500).json({ success: false, error: 'فشل إرسال رسالة الإلغاء للعميل' });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
