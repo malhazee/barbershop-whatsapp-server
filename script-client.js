@@ -148,6 +148,14 @@ const SERVICES = {
 let selectedTime = null;
 let selectedDate = null;
 
+// دالة للحصول على التاريخ المحلي بصيغة YYYY-MM-DD (تجنب مشاكل UTC)
+function getLocalDateString(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // تحميل الإعدادات من Firebase
 async function loadSettingsFromFirebase() {
     try {
@@ -352,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // تحميل الإعدادات أولاً
     await loadSettingsFromFirebase();
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     selectedDate = today;
     
     const holidayNotice = document.getElementById('holidayNotice');
@@ -371,7 +379,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Check if tomorrow is a holiday at page load
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDate = tomorrow.toISOString().split('T')[0];
+    const tomorrowDate = getLocalDateString(tomorrow);
     const tomorrowIsHoliday = await checkIfHoliday(tomorrowDate);
     if (tomorrowIsHoliday) {
         const tomorrowBtn = document.querySelector('.date-btn[data-day="tomorrow"]');
@@ -415,11 +423,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Set selected date first
             let newDate;
             if (this.dataset.day === 'today') {
-                newDate = new Date().toISOString().split('T')[0];
+                newDate = getLocalDateString();
             } else {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                newDate = tomorrow.toISOString().split('T')[0];
+                newDate = getLocalDateString(tomorrow);
             }
             
             // Double check if this date is a holiday (in case holidays were just added)
