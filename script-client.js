@@ -32,7 +32,7 @@ function normalizeJordanPhone(phone) {
 // عنوان سيرفر واتساب (يمكن تغييره من إعدادات الأدمن)
 // ملاحظة: localhost يعمل فقط للاختبار المحلي
 // للإنتاج، يجب نشر السيرفر على VPS أو Heroku
-const WHATSAPP_SERVER_URL = 'https://web-production-4caf.up.railway.app/';
+const WHATSAPP_SERVER_URL = 'https://web-production-4caf.up.railway.app';
 const WHATSAPP_ENABLED = true; // تم تفعيل النظام بعد نشر السيرفر
 
 // دالة لإرسال رسالة واتساب
@@ -74,13 +74,14 @@ async function sendWhatsAppMessage(endpoint, data) {
 }
 
 // دالة لإرسال رسالة تأكيد الحجز عبر واتساب
-async function sendBookingConfirmation(phone, name, date, time, service) {
+async function sendBookingConfirmation(phone, name, date, time, service, barberPhone) {
     return await sendWhatsAppMessage('/send-booking-confirmation', {
         phone,
         name,
         date,
         time,
-        service
+        service,
+        barberPhone
     });
 }
 
@@ -732,7 +733,8 @@ async function bookAppointment(e) {
         saveUserPhone(phone);
         
         // إرسال رسالة واتساب تأكيد الحجز
-        await sendBookingConfirmation(phone, name, selectedDate, selectedTime, service);
+        const barberPhone = SETTINGS.barberPhone || '';
+        await sendBookingConfirmation(phone, name, selectedDate, selectedTime, service, barberPhone);
         
         // رسالة نجاح مفصلة
         const successMessage = `✅ تم حجز الموعد بنجاح!\n\n` +

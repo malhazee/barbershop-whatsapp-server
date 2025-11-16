@@ -35,7 +35,7 @@ function normalizeJordanPhone(phone) {
 // ========================================
 
 // عنوان سيرفر واتساب
-const WHATSAPP_SERVER_URL = 'https://web-production-4caf.up.railway.app/';
+const WHATSAPP_SERVER_URL = 'https://web-production-4caf.up.railway.app';
 const WHATSAPP_ENABLED = true; // تم تفعيل النظام بعد نشر السيرفر
 
 // دالة لإرسال رسالة واتساب
@@ -78,13 +78,15 @@ async function sendWhatsAppMessage(endpoint, data) {
 // دالة لإرسال رسالة إلغاء عبر واتساب
 async function sendCancellationMessage(phone, name, date, time, reason) {
     const websiteUrl = 'https://barbershop-appointments-533ce.web.app';
+    const barberPhone = SETTINGS.barberPhone || '';
     return await sendWhatsAppMessage('/send-cancellation', {
         phone,
         name,
         date,
         time,
         reason,
-        websiteUrl
+        websiteUrl,
+        barberPhone
     });
 }
 
@@ -364,6 +366,11 @@ async function loadSettings() {
         document.getElementById('closeMinute').value = closeTime.minute;
         document.getElementById('closePeriod').value = closeTime.period;
         
+        // تحميل رقم الحلاق
+        if (SETTINGS.barberPhone) {
+            document.getElementById('barberPhone').value = SETTINGS.barberPhone;
+        }
+        
         console.log('تم تحميل الإعدادات:', SETTINGS);
         
     } catch (error) {
@@ -385,12 +392,15 @@ async function saveSettings() {
         const startTime = convertTo24Hour(openHour, openMinute, openPeriod);
         const endTime = convertTo24Hour(closeHour, closeMinute, closePeriod);
         
+        const barberPhone = document.getElementById('barberPhone').value.trim();
+        
         SETTINGS.workingHours.start = startTime;
         SETTINGS.workingHours.end = endTime;
+        SETTINGS.barberPhone = barberPhone;
         
         await db.collection('settings').doc('shopSettings').set(SETTINGS);
         
-        alert('✅ تم حفظ الإعدادات بنجاح!\n\nساعات العمل:\nمن: ' + startTime + '\nإلى: ' + endTime);
+        alert('✅ تم حفظ الإعدادات بنجاح!\n\nساعات العمل:\nمن: ' + startTime + '\nإلى: ' + endTime + '\n\nرقم الحلاق: ' + (barberPhone || 'غير محدد'));
         
         console.log('تم حفظ الإعدادات:', SETTINGS);
         
