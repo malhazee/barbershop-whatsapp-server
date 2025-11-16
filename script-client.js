@@ -1008,6 +1008,29 @@ async function confirmDelete(appointmentId, customerName, source) {
     }
     
     try {
+        // جلب بيانات الموعد قبل الحذف لإرسال الإشعارات
+        const appointmentDoc = await db.collection('appointments').doc(appointmentId).get();
+        const appointmentData = appointmentDoc.data();
+        
+        // إرسال إشعار واتساب للحلاق بالإلغاء
+        if (appointmentData && SETTINGS.barberPhone) {
+            try {
+                const barberPhone = SETTINGS.barberPhone;
+                await sendWhatsAppMessage('/send-cancellation', {
+                    phone: appointmentData.phone,
+                    name: appointmentData.name,
+                    date: appointmentData.date,
+                    time: appointmentData.time,
+                    reason: 'قام العميل بإلغاء الموعد',
+                    service: appointmentData.service || '',
+                    websiteUrl: 'https://barbershop-appointments-533ce.web.app',
+                    barberPhone: barberPhone
+                });
+            } catch (error) {
+                console.error('خطأ في إرسال إشعار الإلغاء للحلاق:', error);
+            }
+        }
+        
         await db.collection('appointments').doc(appointmentId).delete();
         
         // عرض رسالة نجاح
