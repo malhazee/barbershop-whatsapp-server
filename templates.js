@@ -1,3 +1,22 @@
+// رسالة إشعار الحلاق بحجز جديد
+function getBarberNewBooking(name, date, time, service) {
+    return `✂️ حجز جديد
+
+العميل: *${name}*
+الخدمة: *${service}*
+التاريخ: *${date}*
+الوقت: *${time}*`;
+}
+
+// رسالة إشعار الحلاق بإلغاء حجز
+function getBarberCancellation(name, date, time, service) {
+    return `⚠️ تم إلغاء حجز
+
+العميل: *${name}*
+الخدمة: *${service}*
+التاريخ: *${date}*
+الوقت: *${time}*`;
+}
 // ========================================
 // قوالب رسائل واتساب
 // ========================================
@@ -190,4 +209,6 @@ module.exports = {
     getFeedbackRequest,
     getBirthdayMessage,
     getLoyaltyPointsMessage
+    ,getBarberNewBooking
+    ,getBarberCancellation
 };

@@ -16,8 +16,12 @@ const {
     getCancellationMessage,
     getThankYouMessage,
     getReminderMessage1Hour,
-    getReminderMessage15Min
+    getReminderMessage15Min,
+    getBarberNewBooking,
+    getBarberCancellation
 } = require('./templates');
+// رقم الحلاق الذي يستقبل إشعارات الحجز والإلغاء (صيغة دولية بدون +)
+const BARBER_PHONE = process.env.BARBER_PHONE || '9627XXXXXXXX'; // عدل الرقم هنا أو عبر متغير بيئة
 
  
 const app = express();
@@ -432,10 +436,17 @@ app.post('/send-booking-confirmation', async (req, res) => {
             });
         }
 
-    const message = getBookingConfirmation(name, date, time, service);
-    await sendWhatsAppMessage(phone, message);
-    // Schedule automatic reminders (-60m, -15m)
-    scheduleReminders(phone, name, date, time);
+        const message = getBookingConfirmation(name, date, time, service);
+        await sendWhatsAppMessage(phone, message);
+        // إشعار الحلاق بحجز جديد
+        try {
+            const barberMsg = getBarberNewBooking(name, date, time, service);
+            await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
+        } catch (e) {
+            console.error('Barber notify error (booking):', e.message);
+        }
+        // Schedule automatic reminders (-60m, -15m)
+        scheduleReminders(phone, name, date, time);
         
         res.json({ success: true, message: 'تم إرسال رسالة التأكيد' });
     } catch (error) {
@@ -476,10 +487,17 @@ app.post('/send-cancellation', async (req, res) => {
             });
         }
 
-    const message = getCancellationMessage(name, date, time, reason, websiteUrl);
-    await sendWhatsAppMessage(phone, message);
-    // Cancel any scheduled reminders for this appointment
-    cancelReminders(phone, date, time);
+        const message = getCancellationMessage(name, date, time, reason, websiteUrl);
+        await sendWhatsAppMessage(phone, message);
+        // إشعار الحلاق بإلغاء الحجز
+        try {
+            const barberMsg = getBarberCancellation(name, date, time, req.body.service || '---');
+            await sendWhatsAppMessage(BARBER_PHONE, barberMsg);
+        } catch (e) {
+            console.error('Barber notify error (cancel):', e.message);
+        }
+        // Cancel any scheduled reminders for this appointment
+        cancelReminders(phone, date, time);
         
         res.json({ success: true, message: 'تم إرسال رسالة الإلغاء' });
     } catch (error) {
