@@ -15,6 +15,17 @@ const db = firebase.firestore();
 console.log('Firebase initialized');
 
 // ========================================
+// دالة لتحويل الرقم الأردني المحلي إلى صيغة دولية
+function normalizeJordanPhone(phone) {
+    let p = phone.trim().replace(/\D/g, '');
+    if (p.startsWith('0') && p.length === 10) {
+        return '962' + p.slice(1);
+    }
+    if (p.startsWith('962') && p.length === 12) {
+        return p;
+    }
+    return p;
+}
 // WhatsApp Integration
 // ========================================
 
@@ -33,12 +44,17 @@ async function sendWhatsAppMessage(endpoint, data) {
     }
     
     try {
+        // تحويل رقم الهاتف إذا كان موجوداً في البيانات
+        let sendData = { ...data };
+        if (sendData.phone) {
+            sendData.phone = normalizeJordanPhone(sendData.phone);
+        }
         const response = await fetch(`${WHATSAPP_SERVER_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify(sendData)
         });
 
         const result = await response.json();
