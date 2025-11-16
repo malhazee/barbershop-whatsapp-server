@@ -173,7 +173,6 @@ async function loadSettingsFromFirebase() {
                     breakTime: 0
                 });
                 
-                // استخدام الإعدادات الجديدة
                 SETTINGS.slotDuration = 30;
                 SETTINGS.breakTime = 0;
                 console.log('✅ تم تحديث الإعدادات تلقائياً:', SETTINGS);
@@ -185,6 +184,27 @@ async function loadSettingsFromFirebase() {
     } catch (error) {
         console.error('خطأ في تحميل الإعدادات:', error);
     }
+}
+
+// مراقبة التغييرات على الإعدادات في الوقت الفعلي
+function setupSettingsListener() {
+    db.collection('settings').doc('shopSettings')
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const newSettings = doc.data();
+                const oldBarberPhone = SETTINGS.barberPhone;
+                SETTINGS = newSettings;
+                
+                // إذا تغير رقم الحلاق، أخبر المستخدم
+                if (oldBarberPhone !== newSettings.barberPhone) {
+                    console.log('🔄 تم تحديث رقم الحلاق تلقائياً:', newSettings.barberPhone);
+                }
+                
+                console.log('✅ تم تحديث الإعدادات تلقائياً:', SETTINGS);
+            }
+        }, (error) => {
+            console.error('خطأ في مراقبة الإعدادات:', error);
+        });
 }
 
 // ==================== نظام الإشعارات المستمرة ====================
@@ -359,6 +379,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // تحميل الإعدادات أولاً
     await loadSettingsFromFirebase();
+    
+    // بدء مراقبة التغييرات على الإعدادات في الوقت الفعلي
+    setupSettingsListener();
     
     const today = getLocalDateString();
     selectedDate = today;

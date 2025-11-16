@@ -232,6 +232,7 @@ function showAdmin() {
     document.getElementById('adminPanel').style.display = 'block';
     loadAppointments();
     loadSettings();
+    setupSettingsListener(); // مراقبة التغييرات على الإعدادات
     loadHolidays(); // تحميل أيام العطل
     enableAdminNotifications(); // تفعيل إشعارات الأدمن
     setupAdminNotifications(); // بدء مراقبة المواعيد
@@ -377,6 +378,19 @@ async function loadSettings() {
     } catch (error) {
         console.error('خطأ في تحميل الإعدادات:', error);
     }
+}
+
+// مراقبة التغييرات على الإعدادات في الوقت الفعلي (للمزامنة بين التبويبات)
+function setupSettingsListener() {
+    db.collection('settings').doc('shopSettings')
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                SETTINGS = doc.data();
+                console.log('✅ تم تحديث SETTINGS تلقائياً:', SETTINGS);
+            }
+        }, (error) => {
+            console.error('خطأ في مراقبة الإعدادات:', error);
+        });
 }
 
 // حفظ الإعدادات في Firebase
