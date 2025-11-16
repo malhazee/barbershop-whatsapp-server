@@ -1,0 +1,482 @@
+// ========================================
+// WhatsApp Server for Barbershop Appointments
+// ========================================
+
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+
+const { 
+    getBookingConfirmation, 
+    getReminderMessage, 
+    getCancellationMessage,
+    getThankYouMessage 
+} = require('./templates');
+
+// ========================================
+// Configuration
+// ========================================
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// ========================================
+// WhatsApp Client Setup
+// ========================================
+
+let client;
+let isReady = false;
+let qrCodeData = null;
+
+function initializeWhatsApp() {
+    console.log('🚀 جاري تهيئة واتساب...');
+    
+    client = new Client({
+        authStrategy: new LocalAuth({
+            dataPath: '.wwebjs_auth'
+        }),
+        puppeteer: {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu'
+            ]
+        }
+    });
+
+    // عند توليد QR Code
+    client.on('qr', async (qr) => {
+        console.log('📱 QR Code جاهز للمسح:');
+        qrcode.generate(qr, { small: true });
+        
+        // حفظ QR Code كصورة
+        try {
+            qrCodeData = await QRCode.toDataURL(qr);
+            console.log('✅ تم حفظ QR Code - افتح http://localhost:3000 لمشاهدته');
+        } catch (err) {
+            console.error('خطأ في حفظ QR Code:', err);
+        }
+    });
+
+    // عند الاتصال
+    client.on('authenticated', () => {
+        console.log('✅ تم التحقق من الهوية');
+    });
+
+    // عند الجاهزية
+    client.on('ready', () => {
+        console.log('🎉 واتساب جاهز للاستخدام!');
+        isReady = true;
+        qrCodeData = null;
+    });
+
+    // عند قطع الاتصال
+    client.on('disconnected', (reason) => {
+        console.log('❌ تم قطع الاتصال:', reason);
+        isReady = false;
+    });
+
+    // في حالة فشل التحقق
+    client.on('auth_failure', (msg) => {
+        console.error('❌ فشل التحقق:', msg);
+        isReady = false;
+    });
+
+    // بدء التهيئة
+    client.initialize();
+}
+
+// ========================================
+// Helper Functions
+// ========================================
+
+// تنسيق رقم الهاتف
+function formatPhoneNumber(phone) {
+    // إزالة جميع الأحرف غير الرقمية
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // إضافة كود الدولة إذا لم يكن موجوداً (الأردن +962)
+    if (!cleaned.startsWith('962')) {
+        if (cleaned.startsWith('0')) {
+            cleaned = '962' + cleaned.substring(1);
+        } else {
+            cleaned = '962' + cleaned;
+        }
+    }
+    
+    return cleaned + '@c.us';
+}
+
+// إرسال رسالة واتساب
+async function sendWhatsAppMessage(phone, message) {
+    if (!isReady) {
+        throw new Error('واتساب غير متصل. الرجاء مسح QR Code أولاً.');
+    }
+
+    try {
+        const formattedNumber = formatPhoneNumber(phone);
+        await client.sendMessage(formattedNumber, message);
+        console.log(`✅ تم إرسال رسالة إلى: ${phone}`);
+        return { success: true, phone: formattedNumber };
+    } catch (error) {
+        console.error(`❌ خطأ في إرسال رسالة إلى ${phone}:`, error.message);
+        throw error;
+    }
+}
+
+// ========================================
+// API Endpoints
+// ========================================
+
+// الصفحة الرئيسية - عرض QR Code
+app.get('/', (req, res) => {
+    if (isReady) {
+        res.send(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>سيرفر واتساب - متصل</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        padding: 50px;
+                        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+                        color: white;
+                    }
+                    .container {
+                        background: white;
+                        color: #333;
+                        padding: 40px;
+                        border-radius: 20px;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    }
+                    h1 { color: #25D366; }
+                    .status {
+                        background: #d4edda;
+                        color: #155724;
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin: 20px 0;
+                        font-size: 18px;
+                    }
+                    button {
+                        background: #ef5350;
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    }
+                    button:hover { background: #d32f2f; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ سيرفر واتساب</h1>
+                    <div class="status">
+                        🎉 واتساب متصل وجاهز!
+                    </div>
+                    <p style="color: #666; font-size: 14px;">
+                        السيرفر يعمل بنجاح ويمكنه إرسال الرسائل الآن
+                    </p>
+                    <button onclick="disconnect()">🔄 إعادة الاتصال</button>
+                </div>
+                <script>
+                    function disconnect() {
+                        if (confirm('هل تريد قطع الاتصال وإعادة مسح QR Code؟')) {
+                            fetch('/reset', { method: 'POST' })
+                                .then(() => location.reload());
+                        }
+                    }
+                </script>
+            </body>
+            </html>
+        `);
+    } else if (qrCodeData) {
+        res.send(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>مسح QR Code</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        padding: 30px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                    }
+                    .container {
+                        background: white;
+                        color: #333;
+                        padding: 40px;
+                        border-radius: 20px;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    }
+                    h1 { color: #667eea; }
+                    .qr-box {
+                        background: #f5f5f5;
+                        padding: 20px;
+                        border-radius: 15px;
+                        margin: 20px 0;
+                    }
+                    img {
+                        max-width: 100%;
+                        border-radius: 10px;
+                    }
+                    .instructions {
+                        background: #fff3cd;
+                        color: #856404;
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-top: 20px;
+                        text-align: right;
+                    }
+                    .instructions ol {
+                        margin: 10px 0;
+                        padding-right: 20px;
+                    }
+                    .loading {
+                        margin-top: 20px;
+                        color: #666;
+                    }
+                </style>
+                <script>
+                    // تحديث الصفحة كل 3 ثواني للتحقق من الاتصال
+                    setTimeout(() => location.reload(), 3000);
+                </script>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>📱 مسح QR Code</h1>
+                    <p style="color: #666;">امسح الكود باستخدام واتساب على هاتفك</p>
+                    
+                    <div class="qr-box">
+                        <img src="${qrCodeData}" alt="QR Code">
+                    </div>
+                    
+                    <div class="instructions">
+                        <strong>📋 التعليمات:</strong>
+                        <ol>
+                            <li>افتح واتساب على هاتفك</li>
+                            <li>اضغط على القائمة (⋮) أو الإعدادات</li>
+                            <li>اختر "الأجهزة المرتبطة"</li>
+                            <li>اضغط "ربط جهاز"</li>
+                            <li>امسح الكود أعلاه</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="loading">
+                        ⏳ في انتظار المسح...
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+    } else {
+        res.send(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>جاري التحميل...</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        padding: 50px;
+                        background: #f0f0f0;
+                    }
+                    .loader {
+                        border: 5px solid #f3f3f3;
+                        border-top: 5px solid #667eea;
+                        border-radius: 50%;
+                        width: 50px;
+                        height: 50px;
+                        animation: spin 1s linear infinite;
+                        margin: 20px auto;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+                <script>
+                    setTimeout(() => location.reload(), 2000);
+                </script>
+            </head>
+            <body>
+                <h2>⏳ جاري تحميل واتساب...</h2>
+                <div class="loader"></div>
+                <p>الرجاء الانتظار...</p>
+            </body>
+            </html>
+        `);
+    }
+});
+
+// حالة السيرفر
+app.get('/status', (req, res) => {
+    res.json({
+        isReady,
+        hasQRCode: qrCodeData !== null,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// إرسال رسالة تأكيد حجز
+app.post('/send-booking-confirmation', async (req, res) => {
+    try {
+        const { phone, name, date, time, service } = req.body;
+        
+        if (!phone || !name || !date || !time || !service) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'البيانات ناقصة' 
+            });
+        }
+
+        const message = getBookingConfirmation(name, date, time, service);
+        await sendWhatsAppMessage(phone, message);
+        
+        res.json({ success: true, message: 'تم إرسال رسالة التأكيد' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// إرسال رسالة تذكير
+app.post('/send-reminder', async (req, res) => {
+    try {
+        const { phone, name, date, time } = req.body;
+        
+        if (!phone || !name || !date || !time) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'البيانات ناقصة' 
+            });
+        }
+
+        const message = getReminderMessage(name, date, time);
+        await sendWhatsAppMessage(phone, message);
+        
+        res.json({ success: true, message: 'تم إرسال رسالة التذكير' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// إرسال رسالة إلغاء
+app.post('/send-cancellation', async (req, res) => {
+    try {
+        const { phone, name, date, time, reason, websiteUrl } = req.body;
+        
+        if (!phone || !name || !date || !time || !reason) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'البيانات ناقصة' 
+            });
+        }
+
+        const message = getCancellationMessage(name, date, time, reason, websiteUrl);
+        await sendWhatsAppMessage(phone, message);
+        
+        res.json({ success: true, message: 'تم إرسال رسالة الإلغاء' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// إرسال رسالة شكر
+app.post('/send-thankyou', async (req, res) => {
+    try {
+        const { phone, name } = req.body;
+        
+        if (!phone || !name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'البيانات ناقصة' 
+            });
+        }
+
+        const message = getThankYouMessage(name);
+        await sendWhatsAppMessage(phone, message);
+        
+        res.json({ success: true, message: 'تم إرسال رسالة الشكر' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// إعادة تعيين الاتصال
+app.post('/reset', async (req, res) => {
+    try {
+        if (client) {
+            await client.destroy();
+        }
+        
+        // حذف ملفات الجلسة
+        const authPath = path.join(__dirname, '.wwebjs_auth');
+        if (fs.existsSync(authPath)) {
+            fs.rmSync(authPath, { recursive: true, force: true });
+        }
+        
+        isReady = false;
+        qrCodeData = null;
+        
+        // إعادة التهيئة
+        setTimeout(() => initializeWhatsApp(), 2000);
+        
+        res.json({ success: true, message: 'تمت إعادة تعيين الاتصال' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ========================================
+// Start Server
+// ========================================
+
+app.listen(PORT, () => {
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`🚀 السيرفر يعمل على: http://localhost:${PORT}`);
+    console.log(`📱 افتح الرابط لمسح QR Code`);
+    console.log(`${'='.repeat(50)}\n`);
+});
+
+// تهيئة واتساب عند بدء التشغيل
+initializeWhatsApp();
+
+// معالجة الإغلاق النظيف
+process.on('SIGINT', async () => {
+    console.log('\n🛑 جاري إيقاف السيرفر...');
+    if (client) {
+        await client.destroy();
+    }
+    process.exit(0);
+});

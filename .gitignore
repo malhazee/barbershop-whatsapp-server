@@ -1,0 +1,23 @@
+# Ignore node modules
+node_modules/
+
+# Ignore WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Ignore environment variables
+.env
+
+# Ignore logs
+*.log
+npm-debug.log*
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
