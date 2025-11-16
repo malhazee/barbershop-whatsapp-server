@@ -1,0 +1,506 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حجز موعد</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💈</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .date-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .date-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .date-btn:hover {
+            background: #f0f0f0;
+        }
+        .date-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .time-slot {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+        }
+        .time-slot:hover:not(.booked) {
+            background: #f0f0f0;
+        }
+        .time-slot.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .time-slot.booked {
+            background: #ffebee;
+            color: #c62828;
+            cursor: not-allowed;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .success { background: #c8e6c9; color: #2e7d32; }
+        .error { background: #ffcdd2; color: #c62828; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
+        
+        /* قسم الإلغاء والمواعيد */
+        .section-box {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #667eea;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+        .section-title.cancel-title {
+            color: #e53935;
+            border-bottom-color: #e53935;
+        }
+        .close-icon {
+            font-size: 30px;
+            cursor: pointer;
+            color: #e53935;
+        }
+        .section-description {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .search-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+        }
+        .cancel-btn-red {
+            background: #e53935;
+        }
+        .cancel-btn-red:hover {
+            background: #c62828;
+        }
+        .view-btn-purple {
+            background: #667eea;
+        }
+        .view-btn-purple:hover {
+            background: #5568d3;
+        }
+        .appointments-result {
+            margin-top: 20px;
+        }
+        .appointment-card {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+        }
+        .appointment-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .appointment-details {
+            color: #555;
+            line-height: 1.8;
+        }
+        .appointment-details div {
+            margin-bottom: 8px;
+        }
+        .delete-appointment-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .delete-appointment-btn:hover {
+            background: #d32f2f;
+        }
+        
+        /* إشعارات منبثقة (Toast Notifications) */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            z-index: 999999 !important;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 15px;
+            line-height: 1.6;
+            direction: rtl;
+            pointer-events: auto;
+        }
+        .toast-show {
+            transform: translateX(0) !important;
+        }
+        .toast-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .toast-content {
+            flex: 1;
+            word-wrap: break-word;
+        }
+        .toast-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-right: 5px solid #28a745;
+            color: #155724;
+        }
+        .toast-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-right: 5px solid #dc3545;
+            color: #721c24;
+        }
+        .toast-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            border-right: 5px solid #17a2b8;
+            color: #0c5460;
+        }
+        @media (max-width: 600px) {
+            .toast {
+                top: 50% !important;
+                left: 50% !important;
+                right: auto !important;
+                transform: translate(-50%, -50%) scale(0.8);
+                min-width: auto;
+                max-width: 90%;
+                width: 90%;
+                padding: 25px 20px;
+                font-size: 16px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+                text-align: center;
+            }
+            .toast-show {
+                transform: translate(-50%, -50%) scale(1) !important;
+            }
+            .toast-icon {
+                font-size: 40px;
+                display: block;
+                margin: 0 auto 10px;
+            }
+            .toast-content {
+                font-size: 17px;
+                font-weight: bold;
+                line-height: 1.8;
+            }
+            .container { padding: 15px; }
+            h1 { font-size: 22px; }
+            .date-btn { font-size: 15px; padding: 12px; }
+        }
+
+        /* نافذة الإشعار المنبثق */
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .notification-modal.show {
+            display: flex;
+        }
+        .notification-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: slideDown 0.4s ease-out;
+            position: relative;
+        }
+        .notification-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 0.6s ease-in-out;
+        }
+        .notification-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .notification-message {
+            font-size: 18px;
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            white-space: pre-line;
+        }
+        .notification-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        .notification-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+        .notification-btn:active {
+            transform: translateY(0);
+        }
+        @media (max-width: 600px) {
+            .notification-box {
+                padding: 30px 20px;
+                width: 95%;
+            }
+            .notification-icon {
+                font-size: 60px;
+            }
+            .notification-title {
+                font-size: 24px;
+            }
+            .notification-message {
+                font-size: 16px;
+                margin-bottom: 25px;
+            }
+            .notification-btn {
+                width: 100%;
+                padding: 18px 30px;
+                font-size: 18px;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- قسم حجز موعد جديد -->
+    <div class="container">
+        <h1>احجز موعدك</h1>
+        
+        <div id="message"></div>
+        <form id="bookingForm">
+            <div class="form-group">
+                <label>الاسم:</label>
+                <input type="text" id="customerName" required>
+            </div>
+            <div class="form-group">
+                <label>رقم الهاتف:</label>
+                <input type="tel" id="customerPhone" required>
+            </div>
+            <div class="form-group">
+                <label>نوع الخدمة:</label>
+                <select id="service" required>
+                    <option value="">اختر الخدمة</option>
+                    <option value="حلاقة ذقن">حلاقة ذقن (30 دقيقة)</option>
+                    <option value="حلاقة شعر">حلاقة شعر (30 دقيقة)</option>
+                    <option value="حلاقة كاملة">حلاقة كاملة (شعر + ذقن) (60 دقيقة - موعدين)</option>
+                    <option value="حلاقة طفل">حلاقة طفل (30 دقيقة)</option>
+                    <option value="صبغة">صبغة (60 دقيقة - موعدين)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>اختر اليوم:</label>
+                <div class="date-buttons">
+                    <button type="button" class="date-btn active" data-day="today">اليوم 📅</button>
+                    <button type="button" class="date-btn" data-day="tomorrow">غداً 📅</button>
+                </div>
+                <div id="holidayNotice" style="display:none; background:#fff3cd; border:2px solid #ffc107; padding:15px; border-radius:8px; margin-top:10px; text-align:center; color:#856404; font-weight:bold; font-size:15px;"></div>
+            </div>
+            <div class="form-group">
+                <label>اختر الوقت:</label>
+                <div id="loadingSlots" class="loading" style="display:none">جاري التحميل...</div>
+                <div class="time-slots" id="timeSlots"></div>
+            </div>
+            <button type="submit" id="bookBtn" disabled>احجز الآن</button>
+        </form>
+    </div>
+
+    <!-- قسم إلغاء الموعد -->
+    <div class="container section-box">
+        <h2 class="section-title cancel-title">
+            إلغاء موعدك
+            <span class="close-icon">✖</span>
+        </h2>
+        <p class="section-description">أدخل رقم هاتفك لإلغاء موعدك</p>
+        <input type="tel" class="search-input" id="cancelPhone" placeholder="07xxxxxxxx">
+        <button class="search-btn cancel-btn-red" onclick="cancelAppointment()">
+            بحث وإلغاء الموعد 🔍
+        </button>
+        <div id="cancelResult"></div>
+    </div>
+
+    <!-- قسم عرض المواعيد -->
+    <div class="container section-box">
+        <h2 class="section-title">
+            مواعيدي
+            <span style="font-size: 30px;">📋</span>
+        </h2>
+        <p class="section-description">أدخل رقم هاتفك لعرض مواعيدك</p>
+        <input type="tel" class="search-input" id="viewPhone" placeholder="07xxxxxxxx">
+        <button class="search-btn view-btn-purple" onclick="viewAppointments()">
+            عرض مواعيدي 🔍
+        </button>
+        <div id="loadingView" class="loading" style="display:none">جاري البحث...</div>
+        <div id="viewResult" class="appointments-result"></div>
+    </div>
+
+    <!-- نافذة الإشعار المنبثق -->
+    <div id="notificationModal" class="notification-modal">
+        <div class="notification-box">
+            <div class="notification-icon" id="notificationIcon">🔔</div>
+            <div class="notification-title" id="notificationTitle">إشعار</div>
+            <div class="notification-message" id="notificationMessage">رسالة الإشعار</div>
+            <button class="notification-btn" id="notificationBtn" onclick="closeNotification()">
+                موافق ✓
+            </button>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="script-client.js?v=39"></script>
+</body>
+</html>

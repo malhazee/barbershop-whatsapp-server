@@ -1,0 +1,492 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+header {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+header h1 {
+    color: #667eea;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #666;
+    font-size: 1.2em;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.main-content.single-column {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+}
+
+@media (max-width: 968px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.card h2 {
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #667eea;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* اختيار اليوم */
+.day-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.day-btn {
+    padding: 20px;
+    background: #f8f9fa;
+    border: 3px solid #ddd;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    transition: all 0.3s;
+}
+
+.day-btn:hover {
+    background: #e9ecef;
+    border-color: #667eea;
+}
+
+.day-btn.selected {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.day-btn span {
+    display: block;
+    font-size: 14px;
+    margin-top: 5px;
+    font-weight: normal;
+}
+
+/* فترات الوقت */
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.time-slot {
+    padding: 15px 10px;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.time-slot:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.time-slot.selected {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.time-slot.booked {
+    background: #e9ecef;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.time-slot.booked:hover {
+    transform: none;
+    border-color: #ddd;
+}
+
+/* الأزرار */
+.btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #5568d3;
+}
+
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: #764ba2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.btn-secondary:hover {
+    background: #643a8a;
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+/* التبويبات */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.tab-btn:hover {
+    background: #e9ecef;
+}
+
+.tab-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* عرض المواعيد */
+.appointment-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border-right: 5px solid #667eea;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.appointment-item h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.appointment-item p {
+    color: #666;
+    margin: 5px 0;
+    font-size: 0.95em;
+}
+
+.appointment-item .time-badge {
+    display: inline-block;
+    background: #667eea;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.appointment-item .btn-delete {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.appointment-item .btn-delete:hover {
+    background: #c82333;
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+    font-size: 18px;
+}
+
+/* قسم إلغاء الموعد */
+.cancel-section {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.cancel-section h3 {
+    color: #856404;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+/* الإحصائيات */
+.stats {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stats p {
+    color: #666;
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+.stats strong {
+    color: #667eea;
+}
+
+/* قسم الإدارة */
+.admin-section {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.admin-header {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.btn-admin {
+    padding: 12px 30px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-admin:hover {
+    background: #5a6268;
+}
+
+.admin-card {
+    margin-top: 20px;
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+}
+
+.admin-card h3 {
+    color: #856404;
+    margin-bottom: 15px;
+}
+
+/* شريط التمرير المخصص */
+.time-slots::-webkit-scrollbar {
+    width: 8px;
+}
+
+.time-slots::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.time-slots::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.time-slots::-webkit-scrollbar-thumb:hover {
+    background: #5568d3;
+}
+
+/* إشعارات منبثقة (Toast Notifications) */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    z-index: 999999 !important;
+    transform: translateX(120%);
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    font-size: 15px;
+    line-height: 1.6;
+    direction: rtl;
+    pointer-events: auto;
+}
+
+.toast-show {
+    transform: translateX(0) !important;
+}
+
+.toast-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.toast-content {
+    flex: 1;
+    word-wrap: break-word;
+}
+
+.toast-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-right: 5px solid #28a745;
+    color: #155724;
+}
+
+.toast-error {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border-right: 5px solid #dc3545;
+    color: #721c24;
+}
+
+.toast-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border-right: 5px solid #17a2b8;
+    color: #0c5460;
+}
+
+/* تحسين الإشعارات على الهاتف */
+@media (max-width: 600px) {
+    .toast {
+        top: 10px !important;
+        right: 10px !important;
+        left: 10px !important;
+        min-width: auto;
+        max-width: none;
+        padding: 15px;
+        font-size: 14px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+    }
+    
+    .toast-icon {
+        font-size: 24px;
+    }
+}
+
+/* الرسائل القديمة (للتوافق مع الكود القديم) */
+.message {
+    display: none; /* مخفية - نستخدم Toast بدلاً منها */
+}
