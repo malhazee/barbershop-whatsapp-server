@@ -76,7 +76,7 @@ async function sendWhatsAppMessage(endpoint, data) {
 }
 
 // دالة لإرسال رسالة إلغاء عبر واتساب
-async function sendCancellationMessage(phone, name, date, time, reason) {
+async function sendCancellationMessage(phone, name, date, time, reason, service = '') {
     const websiteUrl = 'https://barbershop-appointments-533ce.web.app';
     const barberPhone = SETTINGS.barberPhone || '';
     return await sendWhatsAppMessage('/send-cancellation', {
@@ -85,6 +85,7 @@ async function sendCancellationMessage(phone, name, date, time, reason) {
         date,
         time,
         reason,
+        service,
         websiteUrl,
         barberPhone
     });
@@ -667,7 +668,7 @@ async function cancelAppointmentWithReason(id, name, phone, date, time, service)
         });
         
         // إرسال رسالة واتساب للعميل
-        await sendCancellationMessage(phone, name, date, time, reason);
+        await sendCancellationMessage(phone, name, date, time, reason, service);
         
         // تحديث الموعد بسبب الإلغاء قبل الحذف
         await db.collection('appointments').doc(id).update({
