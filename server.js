@@ -20,10 +20,7 @@ const {
     getBarberNewBooking,
     getBarberCancellation
 } = require('./templates');
-// رقم الحلاق الذي يستقبل إشعارات الحجز والإلغاء (صيغة دولية بدون +)
-const BARBER_PHONE = process.env.BARBER_PHONE || '962775879015'; // عدل الرقم هنا أو عبر متغير بيئة
 
- 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
