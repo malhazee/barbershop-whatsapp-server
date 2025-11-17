@@ -46,9 +46,19 @@ function getAppointmentKey(phone, date, time) {
 }
 
 function parseAppointmentDateTime(date, time) {
-    // Assume Asia/Amman (UTC+03:00) for simplicity
-    const iso = `${date}T${time}:00+03:00`;
-    return new Date(iso);
+    // Parse time
+    const [hour, minute] = time.split(':').map(Number);
+    
+    // Create date object
+    let appointmentDate = new Date(`${date}T${time}:00+03:00`);
+    
+    // If time is after midnight (00:00-06:00), it belongs to next day
+    // Working hours: 14:00-02:00, so anything before 14:00 is next day
+    if (hour < 14) {
+        appointmentDate.setDate(appointmentDate.getDate() + 1);
+    }
+    
+    return appointmentDate;
 }
 
 function scheduleReminders(phone, name, date, time) {
