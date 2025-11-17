@@ -18,7 +18,8 @@ const {
     getReminderMessage1Hour,
     getReminderMessage15Min,
     getBarberNewBooking,
-    getBarberCancellation
+    getBarberCancellation,
+    getOTPMessage
 } = require('./templates');
 
 const app = express();
@@ -40,6 +41,51 @@ let qrCodeData = null;
 // Reminder scheduling (in-memory)
 // =============================
 const scheduledReminders = new Map(); // key -> [timeoutIds]
+
+// =============================
+// OTP Storage (in-memory)
+// =============================
+const otpStore = new Map(); // key: phone -> { code, expiresAt }
+const OTP_EXPIRY_TIME = 5 * 60 * 1000; // 5 دقائق
+
+function generateOTP() {
+    return Math.floor(1000 + Math.random() * 9000).toString(); // 4 أرقام
+}
+
+function saveOTP(phone, code) {
+    const expiresAt = Date.now() + OTP_EXPIRY_TIME;
+    otpStore.set(phone, { code, expiresAt });
+    console.log(`[OTP] تم حفظ كود ${code} للرقم ${phone} لمدة 5 دقائق`);
+    
+    // حذف تلقائي بعد 5 دقائق
+    setTimeout(() => {
+        if (otpStore.has(phone)) {
+            otpStore.delete(phone);
+            console.log(`[OTP] انتهت صلاحية الكود للرقم ${phone}`);
+        }
+    }, OTP_EXPIRY_TIME);
+}
+
+function verifyOTP(phone, code) {
+    const stored = otpStore.get(phone);
+    
+    if (!stored) {
+        return { valid: false, message: 'لم يتم إرسال كود تأكيد لهذا الرقم' };
+    }
+    
+    if (Date.now() > stored.expiresAt) {
+        otpStore.delete(phone);
+        return { valid: false, message: 'انتهت صلاحية الكود. الرجاء طلب كود جديد' };
+    }
+    
+    if (stored.code !== code) {
+        return { valid: false, message: 'الكود غير صحيح. الرجاء التحقق والمحاولة مرة أخرى' };
+    }
+    
+    // الكود صحيح - احذفه لمنع إعادة الاستخدام
+    otpStore.delete(phone);
+    return { valid: true, message: 'تم التحقق بنجاح' };
+}
 
 function getAppointmentKey(phone, date, time) {
     return `${phone}_${date}_${time}`;
@@ -565,6 +611,82 @@ app.post('/send-thankyou', async (req, res) => {
         
         res.json({ success: true, message: 'تم إرسال رسالة الشكر' });
     } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ========================================
+// OTP Endpoints
+// ========================================
+
+// إرسال كود OTP
+app.post('/send-otp', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        
+        if (!phone) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'رقم الهاتف مطلوب' 
+            });
+        }
+
+        // توليد كود OTP
+        const code = generateOTP();
+        
+        // حفظ الكود
+        saveOTP(phone, code);
+        
+        // إرسال الكود عبر واتساب
+        const message = getOTPMessage(code);
+        const result = await sendWhatsAppMessage(phone, message);
+        
+        if (result.success) {
+            res.json({ 
+                success: true, 
+                message: 'تم إرسال كود التحقق عبر واتساب',
+                expiresIn: OTP_EXPIRY_TIME / 1000 // بالثواني
+            });
+        } else {
+            res.status(500).json({ 
+                success: false, 
+                error: 'فشل إرسال كود التحقق' 
+            });
+        }
+    } catch (error) {
+        console.error('خطأ في إرسال OTP:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// التحقق من كود OTP
+app.post('/verify-otp', async (req, res) => {
+    try {
+        const { phone, code } = req.body;
+        
+        if (!phone || !code) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'رقم الهاتف والكود مطلوبان' 
+            });
+        }
+
+        // التحقق من الكود
+        const result = verifyOTP(phone, code);
+        
+        if (result.valid) {
+            res.json({ 
+                success: true, 
+                message: result.message 
+            });
+        } else {
+            res.status(400).json({ 
+                success: false, 
+                error: result.message 
+            });
+        }
+    } catch (error) {
+        console.error('خطأ في التحقق من OTP:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

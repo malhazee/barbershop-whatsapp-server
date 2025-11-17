@@ -17,6 +17,22 @@ function getBarberCancellation(name, date, time, service) {
 التاريخ: *${date}*
 الوقت: *${time}*`;
 }
+
+// رسالة كود التحقق OTP
+function getOTPMessage(code) {
+    return `🔐 *كود التحقق*
+
+كود التأكيد الخاص بك:
+
+*${code}*
+
+⏰ الكود صالح لمدة *5 دقائق* فقط
+
+⚠️ لا تشارك هذا الكود مع أي شخص
+
+_تجاهل هذه الرسالة إذا لم تطلب هذا الكود_`;
+}
+
 // ========================================
 // قوالب رسائل واتساب
 // ========================================
@@ -208,7 +224,8 @@ module.exports = {
     getSpecialOfferMessage,
     getFeedbackRequest,
     getBirthdayMessage,
-    getLoyaltyPointsMessage
-    ,getBarberNewBooking
-    ,getBarberCancellation
+    getLoyaltyPointsMessage,
+    getBarberNewBooking,
+    getBarberCancellation,
+    getOTPMessage
 };
